@@ -1,0 +1,359 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Inspection Station — DataObserver Translation Rules
+#
+# Paper connection (§II.B — Digital Twins and Semantics, Figure 3):
+#   "The data observer converts data in information models into textual
+#   expressions on different semantic abstraction levels. We pre-define the
+#   rules determining which events should be emitted on data changes."
+#
+# Each rule maps a (node_id, from_value, to_value) transition to:
+#   - scope:  the event_log.scope value (matches agent subscription scopes)
+#   - source: the event_log.source value ("System" for sensor/state events)
+#   - text:   the high-semantic text that appears verbatim in the LLM prompt
+#
+# Text strings are transcribed directly from prompt_example.txt to reproduce
+# the paper's exact event format. The PromptConstructionEngine (Phase 4) will
+# include these strings in the prompt with the bracketed label format:
+#   [Inspection Station][System][HH:MM:SS] <text>
+#
+# Rule evaluation:
+#   from_value: null  = matches ANY previous value (transition INTO to_value)
+#   to_value: any     = the value the node just changed TO
+#   Both values support exact match only (no regex or range).
+# ─────────────────────────────────────────────────────────────────────────────
+
+module_id: inspection_station
+scope: "Inspection Station"
+default_source: "System"
+
+rules:
+
+  # ── BG56: proximity sensor at exit of storage station / infeed of C1 ───────
+  - node_id: BG56
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "BG56 detects a workpiece at the infeed of conveyor C1."
+
+  - node_id: BG56
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "A workpiece passes BG56."
+
+  # ── BG51: proximity + RFID sensor at Holder H2 / inspection point on C1 ───
+  - node_id: BG51
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "BG51 detects a workpiece at the holder H2 on conveyor C1."
+
+  - node_id: BG51
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "A workpiece passes BG51."
+
+  # ── TF81: RFID reader co-located with BG51 ────────────────────────────────
+  - node_id: TF81
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "TF81 RFID sensor detects a workpiece at holder H2 on conveyor C1."
+
+  - node_id: TF81
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "TF81 RFID sensor no longer detects a workpiece."
+
+  # ── RFID read completion (set by RFID_read_workpiece_info mock function) ───
+  # SOP step 2 trigger: "When the workpiece information is successfully
+  # retrieved, request the inspection service."
+  - node_id: rfid_read_complete
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "The workpiece information is successfully retrieved."
+
+  - node_id: rfid_read_complete
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "RFID read state reset."
+
+  # ── BG57: proximity sensor at far end of C1 ───────────────────────────────
+  - node_id: BG57
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "BG57 detects a workpiece at the end of conveyor C1."
+
+  - node_id: BG57
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "A workpiece passes BG57."
+
+  # ── BG26: proximity sensor at entrance end of C2 ──────────────────────────
+  - node_id: BG26
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "BG26 detects a workpiece at the end of conveyor C2."
+
+  - node_id: BG26
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "A workpiece passes BG26."
+
+  # ── BG21: proximity sensor at Holder H1 / export verification point on C2 ─
+  - node_id: BG21
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "BG21 detects a workpiece at the holder H1 on conveyor C2."
+
+  - node_id: BG21
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "BG21 no longer detects the workpiece."
+
+  # ── BG27: proximity sensor near storage station entrance end of C2 ─────────
+  - node_id: BG27
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "BG27 detects a workpiece near the storage station entrance on conveyor C2."
+
+  - node_id: BG27
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "A workpiece passes BG27."
+
+  # ── BG41: proximity sensor at Holder H3 on C3 (inspection station entrance) ─
+  - node_id: BG41
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "BG41 detects a workpiece before holder H3 on conveyor C3."
+
+  - node_id: BG41
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "A workpiece passes BG41."
+
+  # ── BG42: proximity sensor on C4 (inspection station exit) ────────────────
+  - node_id: BG42
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "BG42 detects a workpiece on conveyor C4."
+
+  - node_id: BG42
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "A workpiece passes BG42."
+
+  # ── Conveyor running state changes ─────────────────────────────────────────
+  - node_id: C1_running
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "Conveyor C1 starts running."
+
+  - node_id: C1_running
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "Conveyor C1 stops."
+
+  - node_id: C2_running
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "Conveyor C2 starts running."
+
+  - node_id: C2_running
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "Conveyor C2 stops."
+
+  - node_id: C3_running
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "Conveyor C3 starts running."
+
+  - node_id: C3_running
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "Conveyor C3 stops."
+
+  - node_id: C4_running
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "Conveyor C4 starts running."
+
+  - node_id: C4_running
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "Conveyor C4 stops."
+
+  # ── Conveyor direction changes ─────────────────────────────────────────────
+  # Only emit direction events when the conveyor is also running (direction
+  # changes while stopped are silent — the SOP only cares about direction
+  # when movement is occurring).
+  - node_id: C1_direction
+    from_value: "reverse"
+    to_value: "forward"
+    source: "System"
+    text: "Conveyor C1 direction set to forward."
+
+  - node_id: C1_direction
+    from_value: "forward"
+    to_value: "reverse"
+    source: "System"
+    text: "Conveyor C1 direction set to reverse."
+
+  - node_id: C2_direction
+    from_value: "reverse"
+    to_value: "forward"
+    source: "System"
+    text: "Conveyor C2 direction set to forward."
+
+  - node_id: C2_direction
+    from_value: "forward"
+    to_value: "reverse"
+    source: "System"
+    text: "Conveyor C2 direction set to reverse."
+
+  - node_id: C3_direction
+    from_value: "reverse"
+    to_value: "forward"
+    source: "System"
+    text: "Conveyor C3 direction set to forward."
+
+  - node_id: C3_direction
+    from_value: "forward"
+    to_value: "reverse"
+    source: "System"
+    text: "Conveyor C3 direction set to reverse."
+
+  - node_id: C4_direction
+    from_value: "reverse"
+    to_value: "forward"
+    source: "System"
+    text: "Conveyor C4 direction set to forward."
+
+  - node_id: C4_direction
+    from_value: "forward"
+    to_value: "reverse"
+    source: "System"
+    text: "Conveyor C4 direction set to reverse."
+
+  # ── Holder state changes ───────────────────────────────────────────────────
+  - node_id: H1
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "Holder H1 is released."
+
+  - node_id: H1
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "Holder H1 returns to holding position."
+
+  - node_id: H2
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "Holder H2 is released."
+
+  - node_id: H2
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "Holder H2 returns to holding position."
+
+  - node_id: H3
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "Holder H3 is released."
+
+  - node_id: H3
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "Holder H3 returns to holding position."
+
+  # ── Switch S1 state changes ────────────────────────────────────────────────
+  - node_id: S1
+    from_value: "continue"
+    to_value: "divert"
+    source: "System"
+    text: "Switch S1 is set to divert the workpiece to conveyor C4."
+
+  - node_id: S1
+    from_value: "divert"
+    to_value: "continue"
+    source: "System"
+    text: "Switch S1 returns to continue path on conveyor C2."
+
+  # ── Transport robot docking ────────────────────────────────────────────────
+  # SOP step 9 trigger: "When the transport robot has docked with the
+  # Inspection Station, actuate the switch to divert."
+  # Set by transport_robot_request() mock function after ROBOT_DOCK_DELAY_SECONDS.
+  - node_id: robot_docked
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "The transport robot has docked with the Inspection Station."
+
+  - node_id: robot_docked
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "The transport robot has departed from the Inspection Station."
+
+  # ── Inspection service state ───────────────────────────────────────────────
+  # SOP step 3 completion trigger: "When the inspection service is successfully
+  # completed, transport the workpiece on conveyor C1 for 8 seconds."
+  # Set by request_inspection_service() mock function after INSPECTION_DURATION_SECONDS.
+  - node_id: inspection_complete
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "The inspection service is successfully completed."
+
+  - node_id: inspection_complete
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "Inspection service state reset."
+
+  # ── Emergency stop state ───────────────────────────────────────────────────
+  # Set by emergency_stop() mock function. Blocks all further dispatch
+  # via FunctionRegistry until manually cleared.
+  - node_id: emergency_stop_active
+    from_value: false
+    to_value: true
+    source: "System"
+    text: "Emergency stop activated. All machine activity halted."
+
+  - node_id: emergency_stop_active
+    from_value: true
+    to_value: false
+    source: "System"
+    text: "Emergency stop cleared. System ready to resume."
