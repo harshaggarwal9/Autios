@@ -1,21 +1,4 @@
-"""
-api/routes/evaluation.py
-──────────────────────────
-REST endpoints for the evaluation framework.
 
-Endpoints:
-  POST /evaluation/runs              — run a new evaluation pass (standard)
-  POST /evaluation/run               — alias for /runs (convenience singular)
-  GET  /evaluation/runs              — list all evaluation runs
-  GET  /evaluation/runs/{run_id}     — full results for one run (JSON)
-  GET  /evaluation/export/csv        — all runs as CSV (Table II format)
-
-Paper connection (§V — Experiments):
-  POST /evaluation/runs reproduces the paper's evaluation methodology:
-  loads DatasetRecords, runs each prompt through Gemini, compares against
-  reference output, scores correctness and reason plausibility, and
-  aggregates into Table II metrics.
-"""
 
 import logging
 
@@ -42,7 +25,7 @@ class RunEvaluationRequest(BaseModel):
 
 
 async def _execute_evaluation(payload: RunEvaluationRequest) -> dict:
-    """Shared implementation for both /run and /runs POST endpoints."""
+    
     try:
         from llm.client import GeminiClient
         llm_client = GeminiClient()
@@ -85,23 +68,13 @@ async def _execute_evaluation(payload: RunEvaluationRequest) -> dict:
 
 @router.post("/runs")
 async def start_evaluation_run(payload: RunEvaluationRequest) -> dict:
-    """
-    Run a complete evaluation pass against the DatasetRecord table.
-
-    Calls Gemini once per test case — for the paper's 40-case benchmark
-    expect approximately 2 minutes and 40 API credits.
-    """
+    
     return await _execute_evaluation(payload)
 
 
 @router.post("/run")
 async def start_evaluation_run_singular(payload: RunEvaluationRequest) -> dict:
-    """
-    Convenience alias for POST /evaluation/runs.
 
-    Identical behaviour — provided so both /run and /runs are valid entry
-    points, matching common REST conventions where callers may use either form.
-    """
     return await _execute_evaluation(payload)
 
 
@@ -109,7 +82,7 @@ async def start_evaluation_run_singular(payload: RunEvaluationRequest) -> dict:
 async def list_evaluation_runs(
     db: AsyncSession = Depends(get_db_session),
 ) -> dict:
-    """List all evaluation runs, newest first."""
+    
     runs = await _reporter.list_runs(db)
     return {"runs": runs, "count": len(runs)}
 
@@ -120,7 +93,7 @@ async def get_evaluation_run(
     include_cases: bool = Query(default=True),
     db: AsyncSession = Depends(get_db_session),
 ) -> dict:
-    """Get full results for one evaluation run including per-case scores."""
+    
     try:
         return await _reporter.export_run_json(
             db, run_id, include_cases=include_cases
@@ -133,7 +106,7 @@ async def get_evaluation_run(
 async def export_all_runs_csv(
     db: AsyncSession = Depends(get_db_session),
 ) -> PlainTextResponse:
-    """Export all EvaluationRun rows as CSV in Table II format."""
+    
     content = await _reporter.export_all_runs_csv(db)
     return PlainTextResponse(
         content=content,

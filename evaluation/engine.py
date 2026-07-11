@@ -1,39 +1,3 @@
-"""
-evaluation/engine.py
-─────────────────────
-EvaluationEngine — reproduces the paper's evaluation methodology (§V).
-
-Paper connection (§V — Experiments):
-  "We evaluate the system on test cases: SOP tasks and unexpected tasks.
-  Two metrics are used:
-    1. Correctness Rate: whether the generated function call matches the
-       reference exactly.
-    2. Reason Plausibility: a Likert-scale score (1-5) judging whether the
-       generated reason text makes sense given the event context."
-
-  Table II of the paper shows correctness rate and average reason
-  plausibility broken down by model and task type (SOP vs unexpected).
-
-Pipeline:
-  1. Load DatasetRecord rows from the DB as the test suite.
-  2. Call GeminiClient.generate(prompt_text) for each test case — reusing
-     the exact prompt stored during normal operation.
-  3. Compare the generated command to reference_output (exact match +
-     function-name match).
-  4. Score reason plausibility using Gemini-as-judge.
-  5. Persist all scores to evaluation_results, aggregate into an
-     EvaluationRun row matching Table II.
-
-Note: CaseResult was deliberately NOT named TestCaseResult — pytest's
-collector treats any class beginning with "Test" as a test class and
-warns when it has an __init__ (which dataclasses always do).
-
-Dependencies:
-  db.models.dataset.DatasetRecord, EvaluationRun, EvaluationResult
-  llm.client.GeminiClient
-  llm.output_parser.OutputParser
-"""
-
 import json
 import logging
 import re
@@ -52,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class CaseResult:
-    """Result of evaluating one DatasetRecord test case."""
+
     record_id: uuid.UUID
     prompt_text: str
     reference_output: str
@@ -66,7 +30,7 @@ class CaseResult:
 
 @dataclass
 class EvaluationSummary:
-    """Aggregated metrics for one evaluation run — matches paper Table II."""
+
     run_id: uuid.UUID
     run_name: str
     model_name: str
@@ -85,17 +49,6 @@ class EvaluationSummary:
 
 
 class EvaluationEngine:
-    """
-    Runs evaluation passes over the DatasetRecord table.
-
-    Usage:
-        engine = EvaluationEngine(llm_client, session_factory)
-        summary = await engine.run_evaluation(
-            run_name="gemini-1.5-flash-v1",
-            scenario_tag="inspection_station",
-            max_cases=40,
-        )
-    """
 
     _JUDGE_SYSTEM = (
         "You are an expert evaluator for industrial automation systems. "
@@ -119,7 +72,7 @@ class EvaluationEngine:
         self._session_factory = session_factory
         self._parser = OutputParser()
 
-    # ── Public API ────────────────────────────────────────────────────────────
+
 
     async def run_evaluation(
         self,
@@ -129,20 +82,7 @@ class EvaluationEngine:
         max_cases: int | None = None,
         score_reasons: bool = True,
     ) -> EvaluationSummary:
-        """
-        Run a complete evaluation pass and persist results to the DB.
 
-        Args:
-            run_name:     Human-readable label for this run.
-            scenario_tag: Filter test cases to a specific scenario (None = all).
-            sop_only:     True = SOP cases only, False = unexpected only,
-                         None = all.
-            max_cases:    Cap on number of test cases evaluated (None = all).
-            score_reasons: Whether to run Gemini-as-judge plausibility scoring.
-
-        Returns:
-            EvaluationSummary with all metrics and per-case results.
-        """
         logger.info(
             "EvaluationEngine: starting run '%s' (scenario=%s, max=%s).",
             run_name, scenario_tag, max_cases,
@@ -183,7 +123,7 @@ class EvaluationEngine:
         )
         return summary
 
-    # ── Per-case evaluation ───────────────────────────────────────────────────
+
 
     async def _evaluate_one(
         self,
@@ -237,7 +177,7 @@ class EvaluationEngine:
         )
 
     async def _score_reason(self, event_context: str, reason: str) -> float | None:
-        """Score reason plausibility using Gemini-as-judge (paper §V metric 2)."""
+
         judge_prompt = (
             f"{self._JUDGE_SYSTEM}\n\n"
             f"Event context:\n{event_context}\n\n"
@@ -253,7 +193,7 @@ class EvaluationEngine:
             logger.debug("EvaluationEngine: reason scoring failed: %s", exc)
         return None
 
-    # ── Aggregation ───────────────────────────────────────────────────────────
+
 
     def _aggregate(self, run_name: str, results: list[CaseResult]) -> EvaluationSummary:
         total = len(results)
@@ -278,7 +218,7 @@ class EvaluationEngine:
         model_name = getattr(self._llm_client, "_model_name", "unknown")
 
         return EvaluationSummary(
-            run_id=uuid.uuid4(),  # replaced after DB insert
+            run_id=uuid.uuid4(),
             run_name=run_name,
             model_name=model_name,
             total_cases=total,
@@ -296,7 +236,7 @@ class EvaluationEngine:
             case_results=results,
         )
 
-    # ── DB persistence ────────────────────────────────────────────────────────
+
 
     async def _persist_run(
         self,
@@ -337,7 +277,7 @@ class EvaluationEngine:
         await db.flush()
         return run
 
-    # ── Static helpers ────────────────────────────────────────────────────────
+
 
     @staticmethod
     async def _load_test_cases(
@@ -368,13 +308,7 @@ class EvaluationEngine:
 
     @staticmethod
     def _commands_match(generated: str | None, reference: str | None) -> bool:
-        """
-        Compare two command strings for equivalence.
 
-        Strategy 1: exact string match (after stripping whitespace).
-        Strategy 2: function-name-only match — same function regardless of
-                    argument formatting differences.
-        """
         if generated is None or reference is None:
             return False
         if generated.strip() == reference.strip():
@@ -388,7 +322,7 @@ class EvaluationEngine:
 
     @staticmethod
     def _extract_event_context(prompt_text: str) -> str:
-        """Extract the Input: section from the full prompt for judge context."""
+        
         marker = "Input:"
         idx = prompt_text.rfind(marker)
         if idx != -1:

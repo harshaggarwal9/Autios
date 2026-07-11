@@ -1,18 +1,18 @@
-"""
-command/interface_manager.py
-───────────────────────────────
-CommandInterfaceManager — creates and owns one CommandInterface per module.
 
-Mirrors the lifecycle pattern of AdapterManager/ModuleRegistry: one instance
-created at startup, held on app.state, no explicit teardown needed (the
-CommandInterface holds no external resources beyond references already
-owned by ModuleRegistry and the shared session_factory).
 
-Dependencies:
-  command.interface.CommandInterface
-  config.module_loader.ModuleConfig
-  digital_twin.information_model.registry.ModuleRegistry
-"""
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import logging
 
@@ -26,10 +26,10 @@ logger = logging.getLogger(__name__)
 
 
 class CommandInterfaceManager:
-    """
-    Owns one CommandInterface per automation module.
-    Held on app.state.command_interface_manager.
-    """
+    
+
+
+
 
     def __init__(self) -> None:
         self._interfaces: dict[str, CommandInterface] = {}

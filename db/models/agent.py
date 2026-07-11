@@ -1,16 +1,16 @@
-"""
-db/models/agent.py
-──────────────────
-ORM models for the agents and agent_subscriptions tables.
 
-Paper connection (§III.B — LLM Agent 𝒜ℳi):
-  Each row in `agents` represents one agent instance. last_event_sequence
-  is the paper's implied cursor — the highest sequence_id the agent has
-  already processed, persisted for crash recovery.
 
-  AgentSubscription implements the paper's subscription set:
-    ℰ_AMi = 𝒮(AMi) ⊆ ℰ
-"""
+
+
+
+
+
+
+
+
+
+
+
 
 import enum
 import uuid
@@ -23,10 +23,10 @@ from db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 
 class AgentType(str, enum.Enum):
-    """
-    The three agent roles from §II.C of the paper.
-    Using str-enum means the stored DB value is a readable string.
-    """
+    
+
+
+
     MANAGER = "MANAGER"
     OPERATOR = "OPERATOR"
     SUMMARIZATION = "SUMMARIZATION"
@@ -42,8 +42,8 @@ class AgentStatus(str, enum.Enum):
 class Agent(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "agents"
 
-    # Stable string identifier used in log messages and API routes.
-    # Convention: "{module_id}_operator" / "manager" / "summarization"
+
+
     agent_id: Mapped[str] = mapped_column(
         String(64),
         unique=True,
@@ -55,8 +55,8 @@ class Agent(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         nullable=False,
     )
 
-    # FK to automation_modules.
-    # Null for Manager and Summarization agents.
+
+
     module_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey(
@@ -66,7 +66,7 @@ class Agent(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         nullable=True,
     )
 
-    # Event cursor
+
     last_event_sequence: Mapped[int] = mapped_column(
         BigInteger,
         default=0,
@@ -80,7 +80,7 @@ class Agent(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         nullable=False,
     )
 
-    # Relationships
+
     module: Mapped["AutomationModule | None"] = relationship(
         "AutomationModule",
         back_populates="agents",
@@ -105,12 +105,12 @@ class Agent(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
 
 class AgentSubscription(UUIDPrimaryKeyMixin, Base):
-    """
-    One subscription row = one event scope an agent listens to.
+    
 
-    Paper formalism:
-      𝒮(𝒜ℳi) ⊆ ℰ
-    """
+
+
+
+
 
     __tablename__ = "agent_subscriptions"
 
@@ -123,13 +123,13 @@ class AgentSubscription(UUIDPrimaryKeyMixin, Base):
         nullable=False,
     )
 
-    # Scope label as it appears in event_log.scope
+
     event_scope: Mapped[str] = mapped_column(
         String(128),
         nullable=False,
     )
 
-    # Optional source filter
+
     event_source: Mapped[str | None] = mapped_column(
         String(64),
         nullable=True,

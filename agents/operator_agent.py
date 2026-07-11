@@ -1,43 +1,4 @@
-"""
-agents/operator_agent.py
-─────────────────────────
-OperatorAgent — the paper's per-module LLM agent.
 
-Paper connection (§III.B — Agent Processing Cycle, Figure 5):
-  The paper's agent processing cycle:
-    Subscribed events (ℰ_AMi)
-      → Prompt construction (𝒫_AMi = Textual(ℛ, 𝒞, ℱ, SOP, ℰ))
-        → LLM inference
-          → Output (𝒪ℓℓ𝓂 = (𝒪_reason, 𝒪_fc))
-            → Function call dispatch (Phase 5: CommandInterface.execute())
-
-  This class implements that cycle as a persistent asyncio background task.
-  One OperatorAgent instance per automation module (paper §III.B).
-
-Event loop discipline:
-  1. poll_once() → EventBatch (subscribed events since cursor)
-  2. PromptBuilder.build(events) → full 5-section prompt
-  3. GeminiClient.generate(prompt) → LLMResponse
-  4. OutputParser.parse(response) → ParsedOutput
-  5. _persist_inference() → llm_inference_log row (captures inference_id)
-  6. CommandInterface.execute() → DispatchResult (Phase 5)
-  7. DatasetRecorder.record_inference() → dataset_records row (Phase 6)
-  8. _emit_command_event() or _emit_alert_event() → EventLogStore
-  9. _advance_cursor() → persists cursor (exactly-once guarantee)
-
-Dependencies:
-  agents.base_agent.BaseAgent
-  agents.prompt.builder.PromptBuilder
-  command.interface.CommandInterface
-  dataset.recorder.DatasetRecorder
-  llm.client.GeminiClient
-  llm.output_parser.OutputParser
-  llm.rate_limiter.RateLimiter
-  core.subscription.engine.SubscriptionEngine
-  core.event_log.store.EventLogStore
-  db.models.inference_log.LLMInferenceLog
-  schemas.event.EventCreate
-"""
 
 import asyncio
 import logging
@@ -67,10 +28,7 @@ settings = get_settings()
 
 
 class OperatorAgent(BaseAgent):
-    """
-    Per-module LLM agent — polls the event log, calls Gemini,
-    dispatches the resulting command, and emits a confirmation event.
-    """
+
 
     def __init__(
         self,
@@ -89,26 +47,20 @@ class OperatorAgent(BaseAgent):
         self._subscription_registry = subscription_registry
         self._llm_client = llm_client
         self._command_interface = command_interface
-        self._dataset_recorder = dataset_recorder  # None = recording disabled
+        self._dataset_recorder = dataset_recorder
 
-        # PromptBuilder is stateless — build once, reuse for every inference
+
         self._prompt_builder = PromptBuilder(module_config)
         self._output_parser = OutputParser()
         self._subscription_engine = SubscriptionEngine(subscription_registry)
 
-        # Rate limiter: 14 req/min (slightly under Gemini free tier limit of 15)
+
         self._rate_limiter = RateLimiter(requests_per_minute=14, burst=2)
 
-    # ── Main loop ─────────────────────────────────────────────────────────────
+
 
     async def run_loop(self) -> None:
-        """
-        Main agent processing cycle — runs until asyncio.CancelledError.
 
-        Polls the EventLog for new events in subscribed scopes,
-        calls Gemini, parses the response, dispatches the command
-        via CommandInterface, records to dataset, and emits a result event.
-        """
         logger.info(
             "OperatorAgent '%s' run_loop started (cursor=%d).",
             self._agent_id, self._cursor,
@@ -133,17 +85,17 @@ class OperatorAgent(BaseAgent):
                     self._agent_id, len(batch.events), self._cursor,
                 )
 
-                # ── Build prompt ───────────────────────────────────────────────
+
                 prompt_text = self._prompt_builder.build(batch.events)
 
-                # ── LLM inference ──────────────────────────────────────────────
+
                 await self._rate_limiter.acquire()
                 llm_response = await self._llm_client.generate(prompt_text)
 
-                # ── Parse response ─────────────────────────────────────────────
+
                 parsed = self._output_parser.parse(llm_response.raw_text)
 
-                # ── Persist inference to llm_inference_log ─────────────────────
+
                 async with self._session_factory() as db:
                     inference_row = await self._persist_inference(
                         db=db,
@@ -155,7 +107,7 @@ class OperatorAgent(BaseAgent):
                     await db.commit()
                     inference_id = inference_row.id
 
-                # ── Dispatch command (Phase 5) ─────────────────────────────────
+
                 dispatch_result = None
                 if parsed.is_success:
                     dispatch_result = await self._command_interface.execute(
@@ -164,7 +116,7 @@ class OperatorAgent(BaseAgent):
                         inference_id=inference_id,
                     )
 
-                # ── Record for dataset (Phase 6) ───────────────────────────────
+
                 if self._dataset_recorder is not None:
                     await self._dataset_recorder.record_inference(
                         inference_id=inference_id,
@@ -178,7 +130,7 @@ class OperatorAgent(BaseAgent):
                         module_id=self._module_config.module_id,
                     )
 
-                # ── Emit command or alert event ────────────────────────────────
+
                 async with self._session_factory() as db:
                     store = EventLogStore(db)
                     if parsed.is_success:
@@ -189,7 +141,7 @@ class OperatorAgent(BaseAgent):
                         await self._emit_alert_event(store, parsed)
                     await db.commit()
 
-                # ── Advance cursor (exactly-once guarantee) ────────────────────
+
                 await self._advance_cursor(batch.latest_sequence_id)
 
             except asyncio.CancelledError:
@@ -205,7 +157,7 @@ class OperatorAgent(BaseAgent):
                 )
                 await asyncio.sleep(5.0)
 
-    # ── DB persistence ────────────────────────────────────────────────────────
+
 
     async def _persist_inference(
         self,
@@ -215,7 +167,7 @@ class OperatorAgent(BaseAgent):
         parsed_reason: str | None,
         parsed_command: str | None,
     ) -> LLMInferenceLog:
-        """Persist one inference cycle to llm_inference_log."""
+        
         row = LLMInferenceLog(
             agent_id=self._agent_db_id,
             task_id=None,
@@ -229,10 +181,10 @@ class OperatorAgent(BaseAgent):
             latency_ms=llm_response.latency_ms,
         )
         db.add(row)
-        await db.flush()  # populate server-generated id
+        await db.flush()
         return row
 
-    # ── Event emission ────────────────────────────────────────────────────────
+
 
     async def _emit_command_event(
         self,
@@ -240,16 +192,7 @@ class OperatorAgent(BaseAgent):
         function_call: str,
         dispatch_result,
     ) -> None:
-        """
-        Emit the result of dispatching the LLM's command.
 
-        Paper format (Figure 3):
-          "[Inspection Station][Operator][HH:MM:SS]
-           Inspection Station calls function: conveyor_1_run('forward', 13)."
-
-        Phase 5 addition: the event text reflects the actual dispatch outcome
-        (success or failure) rather than just what the LLM requested.
-        """
         from db.models.inference_log import CommandOutcome
 
         if dispatch_result is None or dispatch_result.outcome == CommandOutcome.SUCCESS:
@@ -299,12 +242,7 @@ class OperatorAgent(BaseAgent):
         store: EventLogStore,
         parsed,
     ) -> None:
-        """
-        Emit an alert_to_supervisor event when the LLM output cannot be parsed.
 
-        The supervisor event signals that human intervention may be needed
-        and that the agent cannot proceed with this event context.
-        """
         reason = parsed.error_detail or "LLM output could not be parsed."
         text = (
             f"{self._module_config.display_name} calls function: "

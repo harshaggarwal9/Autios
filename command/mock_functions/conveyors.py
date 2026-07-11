@@ -1,18 +1,18 @@
-"""
-command/mock_functions/conveyors.py
-─────────────────────────────────────
-Mock implementations of conveyor_1_run .. conveyor_4_run.
 
-Paper SOP: "conveyor_1_run(direction, time): starts Conveyor C1 and runs it
-for a specified duration in a specified direction."
 
-Behaviour:
-  1. Sets {C}_running=True, {C}_direction=<direction> immediately —
-     triggers the DataObserver to emit "Conveyor C1 starts running."
-  2. Schedules a background task that, after `time` seconds, sets
-     {C}_running=False — simulating the conveyor naturally stopping.
-  Returns immediately; does not block for the full run duration.
-"""
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import asyncio
 import logging

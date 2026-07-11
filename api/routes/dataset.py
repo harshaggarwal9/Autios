@@ -1,21 +1,4 @@
-"""
-api/routes/dataset.py
-──────────────────────
-REST endpoints for the dataset recording system.
 
-Endpoints:
-  GET  /dataset/stats                  — aggregate statistics
-  GET  /dataset/records                — list DatasetRecord rows
-  GET  /dataset/export/jsonl           — JSONL export for fine-tuning
-  GET  /dataset/export/csv             — CSV export for analysis
-  POST /dataset/recording/{enabled}    — enable or disable live recording
-
-Paper connection (§IV — Dataset Creation):
-  These endpoints expose the training dataset 𝒟 accumulated during normal
-  system operation. JSONL export is the direct input to any fine-tuning
-  pipeline. The recording toggle allows pausing dataset capture during
-  evaluation runs so evaluation inferences don't pollute the training set.
-"""
 
 import logging
 
@@ -42,7 +25,7 @@ def _get_recorder(request: Request) -> DatasetRecorder:
 async def get_dataset_stats(
     db: AsyncSession = Depends(get_db_session),
 ) -> dict:
-    """Return aggregate statistics about the accumulated dataset."""
+    
     return await _exporter.export_stats(db)
 
 
@@ -54,7 +37,7 @@ async def list_records(
     sop_only: bool | None = Query(default=None),
     db: AsyncSession = Depends(get_db_session),
 ) -> dict:
-    """List DatasetRecord rows with optional filtering."""
+    
     query = (
         select(DatasetRecord)
         .order_by(DatasetRecord.created_at.desc())
@@ -96,13 +79,8 @@ async def export_jsonl(
     limit: int | None = Query(default=None, ge=1, le=10000),
     db: AsyncSession = Depends(get_db_session),
 ) -> PlainTextResponse:
-    """
-    Export DatasetRecords as JSONL for LLM fine-tuning.
+    
 
-    Format per line:
-      {"prompt": "<full 5-section prompt>", "completion": "<reference JSON>",
-       "metadata": {"task_type": ..., "is_sop_task": ..., ...}}
-    """
     content = await _exporter.export_jsonl(
         db, scenario_tag=scenario_tag, sop_only=sop_only, limit=limit
     )
@@ -122,7 +100,7 @@ async def export_csv(
     limit: int | None = Query(default=None, ge=1, le=10000),
     db: AsyncSession = Depends(get_db_session),
 ) -> PlainTextResponse:
-    """Export DatasetRecords as CSV for human analysis and stratified sampling."""
+    
     content = await _exporter.export_csv(
         db, scenario_tag=scenario_tag, sop_only=sop_only, limit=limit
     )
@@ -140,22 +118,9 @@ async def set_recording_enabled(
     enabled: bool,
     request: Request,
 ) -> dict:
-    """
-    Enable or disable live dataset recording at runtime.
+    
 
-    When disabled, DatasetRecorder.record_inference() and
-    record_task_assignment() become no-ops — no new DatasetRecord rows
-    are written. Existing records are unaffected.
 
-    Primary use case: disable recording before running an evaluation pass
-    so that evaluation inferences (which replay stored prompts) do not
-    contaminate the training dataset with duplicate or circular entries.
-    Re-enable after the evaluation run completes.
-
-    Path parameter:
-      enabled=true   — resume recording
-      enabled=false  — pause recording
-    """
     recorder: DatasetRecorder = _get_recorder(request)
     recorder.set_enabled(enabled)
 

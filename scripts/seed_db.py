@@ -1,35 +1,9 @@
-"""
-scripts/seed_db.py
-───────────────────
-Idempotent database seeder — creates all rows required for the system to
-start correctly on a fresh PostgreSQL database.
-
-What is seeded:
-  1. AutomationModule row for each YAML module config (inspection_station)
-  2. Agent rows:
-       - inspection_station_operator  (OPERATOR, module=inspection_station)
-       - manager                      (MANAGER,  module=None)
-  3. AgentSubscription rows:
-       inspection_station_operator → ["Inspection Station", "MES"]
-
-All operations are idempotent — running this script twice will not create
-duplicate rows. Existing rows are left unchanged.
-
-Usage:
-    python scripts/seed_db.py
-
-Prerequisites:
-  - DATABASE_URL set in .env or environment
-  - PostgreSQL server running and the database created
-  - Alembic migrations applied: alembic upgrade head
-"""
-
 import asyncio
 import logging
 import sys
 from pathlib import Path
 
-# Add project root to sys.path so imports work when run as a script
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from sqlalchemy import select
@@ -52,7 +26,7 @@ async def seed(db: AsyncSession) -> None:
     settings = get_settings()
     module_configs = load_all_module_configs(settings.modules_config_dir)
 
-    # ── 1. AutomationModule rows ───────────────────────────────────────────────
+
     module_db_ids: dict[str, object] = {}
 
     for module_id, cfg in module_configs.items():
@@ -79,11 +53,11 @@ async def seed(db: AsyncSession) -> None:
                 "AutomationModule '%s' created (id=%s).", module_id, row.id
             )
 
-    # ── 2. Agent rows ──────────────────────────────────────────────────────────
+
 
     agents_to_seed = []
 
-    # One OPERATOR agent per module
+
     for module_id, cfg in module_configs.items():
         agents_to_seed.append({
             "agent_id": f"{module_id}_operator",
@@ -92,7 +66,7 @@ async def seed(db: AsyncSession) -> None:
             "subscriptions": list(cfg.subscription_scopes()),
         })
 
-    # One MANAGER agent (no module FK)
+
     agents_to_seed.append({
         "agent_id": "manager",
         "agent_type": AgentType.MANAGER,
@@ -128,7 +102,7 @@ async def seed(db: AsyncSession) -> None:
                 "Agent '%s' created (id=%s).", spec["agent_id"], row.id
             )
 
-    # ── 3. AgentSubscription rows ──────────────────────────────────────────────
+
 
     for spec in agents_to_seed:
         if not spec["subscriptions"]:

@@ -13,29 +13,29 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # Database
+
     database_url: str = Field(
         default="postgresql+asyncpg://postgres:postgres@localhost:5432/llm4ias"
     )
 
-    # LLM
+
     gemini_api_key: str = Field(default="")
     gemini_model_name: str = Field(default="gemini-1.5-flash")
 
-    # Application
+
     app_env: str = Field(default="development")
     log_level: str = Field(default="INFO")
 
-    # Agent behaviour
+
     agent_event_window_size: int = Field(default=1, ge=1)
     agent_poll_interval_seconds: float = Field(default=0.5, gt=0.0)
 
-    # Paths
+
     modules_config_dir: Path = Field(
         default=Path(__file__).parent / "modules"
     )
 
-    # Summarization
+
     enable_summarization: bool = Field(default=False)
 
     summary_interval_seconds: float = Field(
@@ -43,7 +43,7 @@ class Settings(BaseSettings):
         gt=0.0,
     )
 
-    # CORS
+
     cors_allowed_origins: list[str] = Field(
         default_factory=list,
     )

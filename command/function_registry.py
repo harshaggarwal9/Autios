@@ -1,26 +1,26 @@
-"""
-command/function_registry.py
-──────────────────────────────
-FunctionRegistry — the safety boundary between a parsed call and actual
-hardware dispatch.
 
-Paper connection (§III.B, Command Interface):
-  Functions must be: validated (name exists), checked (emergency-stop state),
-  validated again (arity), executed, and logged — regardless of outcome.
 
-Outcomes (db.models.inference_log.CommandOutcome):
-  SUCCESS, PARSE_ERROR, UNKNOWN_FUNCTION, INVALID_PARAMS,
-  EXECUTION_ERROR, EMERGENCY_BLOCKED
 
-Validation order (each check short-circuits before the next):
-  1. function_name registered?
-  2. emergency_stop_active and function not in always-allowed set?
-  3. arg count matches registered arity?
-  4. execute — catch any exception from the handler
 
-Dependencies:
-  db.models.inference_log.CommandOutcome
-"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import logging
 from dataclasses import dataclass
@@ -30,7 +30,7 @@ from db.models.inference_log import CommandOutcome
 
 logger = logging.getLogger(__name__)
 
-# Functions that remain callable even during an emergency stop.
+
 ALWAYS_ALLOWED = {"emergency_stop", "alert_to_supervisor"}
 
 
@@ -54,9 +54,9 @@ class DispatchResult:
 
 
 class FunctionRegistry:
-    """
-    Per-module registry mapping function names to validated, callable handlers.
-    """
+    
+
+
 
     def __init__(self, module_id: str) -> None:
         self._module_id = module_id

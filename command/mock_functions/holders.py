@@ -1,11 +1,11 @@
-"""
-command/mock_functions/holders.py
-───────────────────────────────────
-Mock implementations of release_holder_H1/H2/H3.
 
-Paper SOP: "release_holder_H1(): disengages Holder H1 for 3 seconds,
-releasing the workpiece held in position."
-"""
+
+
+
+
+
+
+
 
 import asyncio
 import logging

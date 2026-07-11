@@ -1,29 +1,3 @@
-"""
-agents/manager_agent.py
-─────────────────────────
-ManagerAgent — accepts user tasks, decomposes them into subtask assignments,
-and publishes those assignments to the shared EventLog.
-
-Paper connection (§III.A — Manager Agent):
-  "The manager agent interprets user requirements, formulates production
-  plans, and assigns tasks to operator agents... The manager posts task
-  assignments as events into the shared event log."
-
-  This implementation:
-    1. Polls the tasks table for PENDING rows.
-    2. Claims each task atomically (flips to IN_PROGRESS).
-    3. Builds a plan (one step per registered automation module).
-    4. Creates TaskAssignment rows.
-    5. Publishes one [MES][Manager] event per assignment.
-
-Dependencies:
-  agents.base_agent.BaseAgent
-  core.event_log.store.EventLogStore
-  dataset.recorder.DatasetRecorder
-  db.models.task.Task, TaskAssignment, TaskStatus
-  db.models.agent.Agent, AgentType
-  schemas.event.EventCreate
-"""
 
 import asyncio
 import logging
@@ -46,11 +20,7 @@ settings = get_settings()
 
 
 class ManagerAgent(BaseAgent):
-    """
-    Manager agent — polls for PENDING tasks, decomposes them, and publishes
-    task assignments to the EventLog for operator agents to observe.
-    """
-
+    
     TASK_POLL_INTERVAL_SECONDS = 2.0
 
     def __init__(
@@ -65,13 +35,10 @@ class ManagerAgent(BaseAgent):
         self._module_configs = module_configs
         self._dataset_recorder = dataset_recorder
 
-    # ── Main loop ─────────────────────────────────────────────────────────────
+
 
     async def run_loop(self) -> None:
-        """
-        Poll the tasks table for PENDING rows; decompose and publish each one.
-        Runs until asyncio.CancelledError.
-        """
+
         logger.info("ManagerAgent '%s' run_loop started.", self._agent_id)
 
         while True:
@@ -102,13 +69,13 @@ class ManagerAgent(BaseAgent):
                 )
                 await asyncio.sleep(5.0)
 
-    # ── Task claiming ─────────────────────────────────────────────────────────
+
 
     async def _claim_next_pending_task(self) -> Task | None:
-        """
-        Atomically claim the oldest PENDING task by flipping it to IN_PROGRESS.
-        Returns None if no PENDING task exists.
-        """
+        
+
+
+
         async with self._session_factory() as db:
             result = await db.execute(
                 select(Task)
@@ -131,12 +98,12 @@ class ManagerAgent(BaseAgent):
             task.status = TaskStatus.IN_PROGRESS
             return task
 
-    # ── Task processing ───────────────────────────────────────────────────────
+
 
     async def _process_task(self, task: Task) -> None:
-        """
-        Decompose a claimed task into subtask assignments and publish them.
-        """
+        
+
+
         plan: dict | None = None
         try:
             plan = self._build_plan(task)
@@ -144,7 +111,7 @@ class ManagerAgent(BaseAgent):
             await self._publish_assignment_events(task, assignments)
             await self._finalise_task(task.id, plan, TaskStatus.IN_PROGRESS)
 
-            # Record for dataset (Phase 6)
+
             if self._dataset_recorder is not None and plan:
                 await self._dataset_recorder.record_task_assignment(
                     task_id=task.id,
@@ -168,7 +135,7 @@ class ManagerAgent(BaseAgent):
             await self._finalise_task(task.id, plan=plan, status=TaskStatus.FAILED)
 
     def _build_plan(self, task: Task) -> dict:
-        """Build the production plan — one step per registered module."""
+        
         steps = []
         for module_id, cfg in self._module_configs.items():
             steps.append({
@@ -190,7 +157,7 @@ class ManagerAgent(BaseAgent):
     async def _create_assignments(
         self, task: Task, plan: dict
     ) -> list[TaskAssignment]:
-        """Create one TaskAssignment row per plan step."""
+        
         assignments: list[TaskAssignment] = []
 
         async with self._session_factory() as db:
@@ -229,13 +196,7 @@ class ManagerAgent(BaseAgent):
     async def _publish_assignment_events(
         self, task: Task, assignments: list[TaskAssignment]
     ) -> None:
-        """
-        Publish one [MES][Manager] event per TaskAssignment.
-
-        Paper: "the manager emits a [MES][Manager] task assigned event which
-        operator agents subscribe to." Every OperatorAgent subscribes to
-        scope="MES" so these events reach all operators automatically.
-        """
+ 
         async with self._session_factory() as db:
             store = EventLogStore(db)
             for assignment in assignments:
@@ -261,7 +222,7 @@ class ManagerAgent(BaseAgent):
         plan: dict | None,
         status: TaskStatus,
     ) -> None:
-        """Persist the plan and update the task's status."""
+        
         async with self._session_factory() as db:
             values: dict = {"status": status}
             if plan is not None:

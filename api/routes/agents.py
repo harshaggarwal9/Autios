@@ -1,14 +1,3 @@
-"""
-api/routes/agents.py
-──────────────────────
-REST endpoints for agent status and cursor inspection.
-
-Endpoints:
-  GET  /agents                     — list all registered agents
-  GET  /agents/{agent_id}          — one agent's detail
-  POST /agents/{agent_id}/start    — start a stopped agent
-  POST /agents/{agent_id}/stop     — stop a running agent
-"""
 
 import logging
 
@@ -28,7 +17,7 @@ router = APIRouter(prefix="/agents", tags=["agents"])
 async def list_agents(
     db: AsyncSession = Depends(get_db_session),
 ) -> dict:
-    """List all registered agents with their current cursor and status."""
+    
     result = await db.execute(select(Agent).order_by(Agent.agent_id))
     agents = list(result.scalars().all())
     return {
@@ -53,7 +42,7 @@ async def get_agent(
     agent_id: str,
     db: AsyncSession = Depends(get_db_session),
 ) -> dict:
-    """Get one agent's details by agent_id string."""
+    
     result = await db.execute(
         select(Agent).where(Agent.agent_id == agent_id)
     )
@@ -81,13 +70,9 @@ async def start_agent(
     request: Request,
     db: AsyncSession = Depends(get_db_session),
 ) -> dict:
-    """
-    Start a registered agent that is currently stopped or in error state.
+    
 
-    Looks up the agent in AgentRunner. If the agent is already running,
-    returns 409. If the agent is not managed by AgentRunner (e.g. it
-    exists in the DB but was never started), returns 404.
-    """
+
     runner: AgentRunner = request.app.state.agent_runner
     agent = runner.get_agent(agent_id)
 
@@ -123,12 +108,7 @@ async def stop_agent(
     request: Request,
     db: AsyncSession = Depends(get_db_session),
 ) -> dict:
-    """
-    Stop a running agent gracefully.
 
-    Cancels the agent's run_loop task, persists its final cursor, and
-    sets its DB status to STOPPED. If the agent is not running, returns 409.
-    """
     runner: AgentRunner = request.app.state.agent_runner
     agent = runner.get_agent(agent_id)
 

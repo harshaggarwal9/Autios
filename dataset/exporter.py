@@ -1,22 +1,22 @@
-"""
-dataset/exporter.py
-────────────────────
-DatasetExporter — exports DatasetRecord rows to JSONL and CSV formats.
 
-Paper connection (§IV — Dataset Creation):
-  "We use this dataset to fine-tune smaller open-source models." JSONL
-  (one JSON object per line) is the standard input format for HuggingFace
-  Trainer, OpenAI fine-tuning, and Vertex AI fine-tuning.
 
-Export formats:
-  1. JSONL — {"prompt": ..., "completion": ..., "metadata": {...}} per line.
-  2. CSV — one row per record with full prompt/output text + metadata
-     columns, for spreadsheet analysis and train/val/test split decisions.
-  3. Stats — aggregate dict for dataset-growth monitoring.
 
-Dependencies:
-  db.models.dataset.DatasetRecord, sqlalchemy async, csv/json (stdlib)
-"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import csv
 import io
@@ -33,9 +33,9 @@ logger = logging.getLogger(__name__)
 
 
 class DatasetExporter:
-    """
-    Reads DatasetRecord rows and serialises them to JSONL / CSV / stats dict.
-    """
+    
+
+
 
     async def export_jsonl(
         self,
@@ -44,18 +44,18 @@ class DatasetExporter:
         sop_only: bool | None = None,
         limit: int | None = None,
     ) -> str:
-        """
-        Export DatasetRecords as JSONL for LLM fine-tuning.
+        
 
-        Args:
-            scenario_tag: Filter to a specific test suite (None = all).
-            sop_only:     True = SOP tasks only, False = unexpected only,
-                         None = all.
-            limit:        Max rows to export (None = all).
 
-        Returns:
-            JSONL string — one record per line, newline-terminated.
-        """
+
+
+
+
+
+
+
+
+
         records = await self._load_records(db, scenario_tag, sop_only, limit)
         lines = []
         for r in records:
@@ -80,13 +80,13 @@ class DatasetExporter:
         sop_only: bool | None = None,
         limit: int | None = None,
     ) -> str:
-        """
-        Export DatasetRecords as CSV for human analysis.
+        
 
-        Columns: id, task_type, is_sop_task, scenario_tag, created_at,
-                 inference_id, prompt_preview, reference_output_preview,
-                 full_prompt, full_reference_output.
-        """
+
+
+
+
+
         records = await self._load_records(db, scenario_tag, sop_only, limit)
 
         output = io.StringIO()
@@ -117,12 +117,12 @@ class DatasetExporter:
         return output.getvalue()
 
     async def export_stats(self, db: AsyncSession) -> dict:
-        """
-        Return aggregate statistics about the dataset.
+        
 
-        Returns dict with: total_records, sop_records, unexpected_records,
-        task_type_counts, scenario_tag_counts, exported_at.
-        """
+
+
+
+
         total_result = await db.execute(select(func.count(DatasetRecord.id)))
         total = total_result.scalar_one_or_none() or 0
 
@@ -160,7 +160,7 @@ class DatasetExporter:
             "exported_at": datetime.now(timezone.utc).isoformat(),
         }
 
-    # ── Helpers ───────────────────────────────────────────────────────────────
+
 
     @staticmethod
     async def _load_records(

@@ -8,24 +8,24 @@ version = "0.1.0"
 description = "LLM-Controlled Industrial Automation System — backend implementation of Xia et al. (IEEE ETFA 2025)"
 requires-python = ">=3.12"
 dependencies = [
-    # Web framework
+
     "fastapi>=0.111.0",
     "uvicorn[standard]>=0.29.0",
 
-    # Database
+
     "sqlalchemy[asyncio]>=2.0.30",
     "asyncpg>=0.29.0",
     "alembic>=1.13.0",
 
-    # Validation / settings
+
     "pydantic>=2.7.0",
     "pydantic-settings>=2.2.0",
 
-    # LLM
+
     "google-genai>=0.8.0",
     "tenacity>=8.3.0",
 
-    # Config parsing
+
     "pyyaml>=6.0.1",
 ]
 

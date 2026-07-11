@@ -1,32 +1,32 @@
-"""
-command/interface.py
-─────────────────────
-CommandInterface — the complete dispatch path from a raw LLM function-call
-string to executed (mocked) hardware action, with full audit logging.
 
-Paper connection (§II.A, §III.B — Command Interface):
-  "The command interface receives function calls and routes them to
-  microservices."
 
-Pipeline per dispatch:
-  1. CallParser.parse(call_string)        → ParsedCall(name, args)
-  2. Check emergency_stop_active           → guard
-  3. FunctionRegistry.dispatch(...)        → executes, returns DispatchResult
-  4. AgentCommandLog row persisted         → audit trail (success or failure)
 
-transport_robot_request and request_inspection_service are bound with
-emit-event callbacks that open a fresh DB session, since their completion
-is delayed and decoupled from the call's immediate return.
 
-Dependencies:
-  command.call_parser.CallParser
-  command.function_registry.FunctionRegistry, DispatchResult
-  command.mock_functions.*
-  digital_twin.information_model.registry.ModuleRegistry
-  core.event_log.store.EventLogStore
-  db.models.inference_log.AgentCommandLog
-  schemas.event.EventCreate
-"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import logging
 import uuid
@@ -45,10 +45,10 @@ logger = logging.getLogger(__name__)
 
 
 class CommandInterface:
-    """
-    Dispatches parsed LLM commands to mock hardware functions for one module.
-    One instance per automation module, constructed by CommandInterfaceManager.
-    """
+    
+
+
+
 
     def __init__(
         self,
@@ -64,7 +64,7 @@ class CommandInterface:
         self._call_parser = CallParser()
         self._registry = self._build_registry()
 
-    # ── Registry construction ────────────────────────────────────────────────
+
 
     def _build_registry(self) -> FunctionRegistry:
         registry = FunctionRegistry(self._module_id)
@@ -134,7 +134,7 @@ class CommandInterface:
 
         return registry
 
-    # ── Delayed-completion event emitters ────────────────────────────────────
+
 
     async def _emit_robot_docked_event(self) -> None:
         async with self._session_factory() as db:
@@ -168,7 +168,7 @@ class CommandInterface:
             )
             await db.commit()
 
-    # ── Public dispatch API ───────────────────────────────────────────────────
+
 
     async def execute(
         self,
@@ -176,12 +176,12 @@ class CommandInterface:
         agent_db_id: uuid.UUID,
         inference_id: uuid.UUID,
     ) -> DispatchResult:
-        """
-        Parse and dispatch one LLM-generated function call string.
+        
 
-        Never raises — all failure modes captured in the returned
-        DispatchResult.outcome.
-        """
+
+
+
+
         try:
             parsed = self._call_parser.parse(call_string)
         except CallParseError as exc:
@@ -229,7 +229,7 @@ class CommandInterface:
             db.add(row)
             await db.commit()
 
-    # ── Introspection ─────────────────────────────────────────────────────────
+
 
     def registered_function_names(self) -> list[str]:
         return self._registry.registered_names()

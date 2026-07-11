@@ -1,31 +1,3 @@
-"""
-llm/output_parser.py
-─────────────────────
-OutputParser — parses the LLM's raw JSON response into a typed ParsedOutput.
-
-Paper connection (§III.C — LLM Output 𝒪ℓℓ𝓂):
-  The paper specifies the LLM output format as:
-    {"reason": "reason_for_action", "command": "a_function()"}
-
-  The parser extracts both fields and handles real-world LLM output quirks:
-    1. Code fences (```json ... ```) — some models wrap JSON in markdown
-    2. Trailing text after the JSON object
-    3. Unescaped double-quotes inside the command string — e.g.
-       {"command": "conveyor_1_run("forward", 13)"} is invalid JSON because
-       the inner quotes aren't escaped. A regex recovery path handles this.
-    4. Missing fields — reason or command may be absent
-    5. Empty command — the LLM may return "" for the command
-
-Parse status values (6 outcomes):
-  SUCCESS         — both reason and command extracted successfully
-  PARSE_ERROR     — could not extract valid JSON (and recovery failed)
-  MISSING_FIELDS  — valid JSON but reason or command key absent
-  EMPTY_COMMAND   — command key present but empty string
-
-Dependencies:
-  json, re (stdlib only — no third-party dependencies)
-"""
-
 import json
 import logging
 import re
@@ -45,7 +17,7 @@ class ParseStatus(str, Enum):
 
 @dataclass
 class ParsedOutput:
-    """Result of parsing one LLM response."""
+
     status: ParseStatus
     reason: str | None
     function_call: str | None
@@ -58,11 +30,7 @@ class ParsedOutput:
 
     @property
     def function_name(self) -> str | None:
-        """
-        Extract just the function name from the function call string.
 
-        e.g. 'conveyor_1_run("forward", 13)' → 'conveyor_1_run'
-        """
         if self.function_call is None:
             return None
         match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)\s*\(", self.function_call.strip())
@@ -70,37 +38,10 @@ class ParsedOutput:
 
 
 class OutputParser:
-    """
-    Parses raw LLM response text into a typed ParsedOutput.
 
-    Handles real-world LLM output quirks including code fences,
-    trailing text, and unescaped quotes inside command strings.
-
-    Usage:
-        parser = OutputParser()
-        result = parser.parse(llm_response.raw_text)
-        if result.is_success:
-            dispatch(result.function_call)
-    """
 
     def parse(self, raw_text: str) -> ParsedOutput:
-        """
-        Parse one LLM response string.
 
-        Pipeline:
-          1. Strip code fences (```json ... ```)
-          2. Extract the first complete JSON object using brace matching
-          3. Parse JSON — with fallback recovery for unescaped quotes
-          4. Validate required fields (reason, command)
-          5. Validate command is non-empty
-
-        Args:
-            raw_text: The raw string returned by GeminiClient.generate().
-
-        Returns:
-            ParsedOutput with status, reason, function_call, and raw_text.
-            Never raises — all error conditions are captured in the status.
-        """
         if not raw_text or not raw_text.strip():
             return ParsedOutput(
                 status=ParseStatus.PARSE_ERROR,
@@ -110,10 +51,10 @@ class OutputParser:
                 error_detail="Empty response from LLM.",
             )
 
-        # Step 1: strip code fences
+
         cleaned = self._strip_code_fences(raw_text.strip())
 
-        # Step 2: extract JSON object
+
         json_str = self._extract_json_object(cleaned)
         if json_str is None:
             logger.warning(
@@ -131,13 +72,13 @@ class OutputParser:
                 ),
             )
 
-        # Step 3: parse JSON — with fallback for unescaped quotes in command
+
         try:
             data = json.loads(json_str)
         except json.JSONDecodeError:
-            # Recovery: some LLMs emit function calls with unescaped inner quotes,
-            # e.g. "command": "conveyor_1_run("forward", 13)" — invalid JSON.
-            # Extract reason and command directly with a regex before giving up.
+
+
+
             recovered = self._recover_from_unescaped_quotes(json_str)
             if recovered:
                 data = recovered
@@ -157,7 +98,7 @@ class OutputParser:
                     ),
                 )
 
-        # Step 4: validate required fields
+
         reason = data.get("reason")
         command = data.get("command")
 
@@ -191,7 +132,7 @@ class OutputParser:
                 error_detail="'reason' key missing from LLM response JSON.",
             )
 
-        # Step 5: validate command is non-empty
+
         command_str = str(command).strip()
         if not command_str:
             return ParsedOutput(
@@ -209,17 +150,11 @@ class OutputParser:
             raw_text=raw_text,
         )
 
-    # ── Private helpers ───────────────────────────────────────────────────────
+
 
     @staticmethod
     def _strip_code_fences(text: str) -> str:
-        """
-        Remove markdown code fences that some LLMs add around JSON.
 
-        Handles:
-````json\\n{...}\\n```
-```\\n{...}\\n```
-        """
         pattern = r"^```(?:json)?\s*\n?(.*?)\n?```\s*$"
         match = re.match(pattern, text, re.DOTALL)
         if match:
@@ -228,15 +163,7 @@ class OutputParser:
 
     @staticmethod
     def _recover_from_unescaped_quotes(text: str) -> dict | None:
-        """
-        Attempt to recover reason and command from malformed JSON where the
-        LLM included unescaped double-quotes inside a string value.
 
-        e.g.  {"reason": "r", "command": "conveyor_1_run("forward", 13)"}
-
-        Uses a greedy regex: match from "reason": "..." to "command": "...(last "}")
-        This works because the command is always the last key in the JSON object.
-        """
         pattern = (
             r'"reason"\s*:\s*"([^"]*)"\s*,\s*'
             r'"command"\s*:\s*"(.+)"\s*}'
@@ -248,12 +175,7 @@ class OutputParser:
 
     @staticmethod
     def _extract_json_object(text: str) -> str | None:
-        """
-        Extract the first complete JSON object from text using brace matching.
 
-        This handles cases where the LLM adds text before or after the JSON.
-        Returns None if no complete JSON object is found.
-        """
         start = text.find("{")
         if start == -1:
             return None

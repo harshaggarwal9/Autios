@@ -1,30 +1,3 @@
-"""
-llm/client.py
-──────────────
-GeminiClient — async wrapper around the Google Generative AI SDK.
-
-Paper connection (§III.C — LLM Inference):
-  "We use Google's Gemini model family for all LLM inference."
-  The client wraps the blocking google-genai SDK call in asyncio.to_thread()
-  so it never blocks the event loop, which is critical since the OperatorAgent
-  and SummarizationAgent run as persistent asyncio background tasks.
-
-Design decisions:
-  1. asyncio.to_thread() — the google-genai SDK is synchronous. Running it
-     in a thread pool prevents blocking the event loop during LLM calls.
-  2. @retry (tenacity) — transient API errors (rate limits, network blips)
-     are retried with exponential backoff. The agent loop is designed to
-     tolerate retries since cursor advancement only happens after a
-     successful inference.
-  3. temperature=0 — matches the paper's evaluation setup for reproducibility.
-     Set to 0 for deterministic outputs during testing and benchmarking.
-  4. LLMResponse — a typed dataclass returned to callers so they have access
-     to token counts and latency for the llm_inference_log table.
-
-Dependencies:
-  google-genai, tenacity, asyncio (stdlib)
-"""
-
 import asyncio
 import logging
 import time
@@ -39,8 +12,8 @@ from tenacity import (
 
 logger = logging.getLogger(__name__)
 
-# Lazy import to avoid import-time errors if the API key is not set.
-# GeminiClient.__init__ will raise a clear ValueError if the key is missing.
+
+
 try:
     import google.generativeai as genai
     _GENAI_AVAILABLE = True
@@ -54,7 +27,7 @@ except ImportError:
 
 @dataclass
 class LLMResponse:
-    """Typed response from the Gemini API."""
+    
     raw_text: str
     model_name: str
     prompt_tokens: int | None
@@ -63,15 +36,6 @@ class LLMResponse:
 
 
 class GeminiClient:
-    """
-    Async Gemini API client with retry logic and response typing.
-
-    Usage:
-        client = GeminiClient()  # reads GEMINI_API_KEY from settings
-        response = await client.generate(prompt)
-        print(response.raw_text)
-    """
-
     def __init__(self) -> None:
         from config.settings import get_settings
         settings = get_settings()
@@ -94,8 +58,8 @@ class GeminiClient:
         self._model = genai.GenerativeModel(
             model_name=self._model_name,
             generation_config=genai.GenerationConfig(
-                temperature=0,          # deterministic outputs (paper §V setup)
-                max_output_tokens=512,  # function calls are short; cap tokens
+                temperature=0,
+                max_output_tokens=512,
             ),
         )
 
@@ -104,24 +68,7 @@ class GeminiClient:
         )
 
     async def generate(self, prompt: str) -> LLMResponse:
-        """
-        Send a prompt to Gemini and return the response.
 
-        Runs the blocking SDK call in a thread pool via asyncio.to_thread()
-        to avoid blocking the event loop. Retries on transient errors.
-
-        Args:
-            prompt: The full assembled prompt text (all five sections
-                    for OperatorAgent, or a summary prompt for
-                    SummarizationAgent).
-
-        Returns:
-            LLMResponse with the raw text, model name, token counts,
-            and wall-clock latency.
-
-        Raises:
-            Exception: if all retry attempts are exhausted.
-        """
         return await asyncio.to_thread(self._generate_sync, prompt)
 
     @retry(
@@ -131,12 +78,7 @@ class GeminiClient:
         reraise=True,
     )
     def _generate_sync(self, prompt: str) -> LLMResponse:
-        """
-        Synchronous Gemini call (runs in a thread pool).
 
-        The @retry decorator handles transient errors with exponential
-        backoff: 2s, 4s, 8s (capped at 30s), then reraises.
-        """
         start_ms = time.monotonic() * 1000
 
         response = self._model.generate_content(prompt)
@@ -145,7 +87,7 @@ class GeminiClient:
 
         raw_text = response.text if response.text else ""
 
-        # Extract token counts if available (not all response types include them)
+
         prompt_tokens = None
         response_tokens = None
         if hasattr(response, "usage_metadata") and response.usage_metadata:

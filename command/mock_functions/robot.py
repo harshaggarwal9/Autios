@@ -1,16 +1,16 @@
-"""
-command/mock_functions/robot.py
-───────────────────────────────────
-Mock implementation of transport_robot_request.
 
-Paper SOP: "This call would request a transport robot to pick up a
-workpiece from the Inspection Station."
 
-Behaviour:
-  Simulates the robot docking after a fixed delay, then invokes the
-  emit_docked_event callback (provided by CommandInterface) so a fresh
-  DB session can persist the "transport robot has docked" event.
-"""
+
+
+
+
+
+
+
+
+
+
+
 
 import asyncio
 import logging

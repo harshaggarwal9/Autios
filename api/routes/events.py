@@ -1,28 +1,3 @@
-"""
-api/routes/events.py
-──────────────────────
-REST endpoints for the Event Log.
-
-Endpoints:
-  POST /events                          — append a new event
-  GET  /events                          — recent events (newest first)
-  GET  /events/since/{after_seq}        — cursor-based poll
-  GET  /events/agent/{agent_id}         — events filtered by agent subscriptions
-  GET  /events/{sequence_id}            — fetch one event by sequence_id
-
-Paper connection (§III.B — Event Log Memory ℰ):
-  These endpoints expose EventLogStore and SubscriptionRegistry over HTTP.
-  Production agents call SubscriptionEngine.poll_once() directly (no HTTP);
-  these routes are for external tooling, test harnesses, and monitoring.
-
-Route ordering note:
-  FastAPI matches routes in registration order. The specific literal sub-paths
-  /since and /agent must be declared BEFORE /{sequence_id} to prevent FastAPI
-  from capturing them as integer-looking path parameters. Since "since" and
-  "agent" are not integers, FastAPI's type coercion will reject them for the
-  /{sequence_id}: int route anyway — but explicit ordering avoids ambiguity
-  and makes intent clear.
-"""
 
 import logging
 
@@ -47,7 +22,7 @@ async def append_event(
     payload: EventCreate,
     db: AsyncSession = Depends(get_db_session),
 ) -> EventRead:
-    """Append a new event to the global event log."""
+    
     store = EventLogStore(db)
     event = await store.append(payload)
     logger.info(
@@ -62,7 +37,7 @@ async def get_recent_events(
     scope: str | None = Query(default=None, description="Filter by scope"),
     db: AsyncSession = Depends(get_db_session),
 ) -> EventBatch:
-    """Return the most recent events, optionally filtered by scope."""
+    
     store = EventLogStore(db)
     scopes = [scope] if scope else None
     return await store.get_recent_events(limit=limit, scopes=scopes)
@@ -75,7 +50,7 @@ async def get_events_since(
     scope: str | None = Query(default=None),
     db: AsyncSession = Depends(get_db_session),
 ) -> EventBatch:
-    """Return events with sequence_id strictly greater than after_sequence_id."""
+    
     store = EventLogStore(db)
     scopes = [scope] if scope else None
     return await store.get_events_since(
@@ -93,12 +68,9 @@ async def get_events_for_agent(
     limit: int = Query(default=50, ge=1, le=200),
     db: AsyncSession = Depends(get_db_session),
 ) -> EventBatch:
-    """
-    Return events filtered to the scopes the given agent subscribes to.
+    
 
-    HTTP equivalent of SubscriptionEngine.poll_once() — used by test
-    harnesses and external monitoring.
-    """
+
     registry: SubscriptionRegistry = _get_registry(request)
     scopes = registry.get_scopes(agent_id)
 
@@ -121,17 +93,8 @@ async def get_event_by_sequence(
     sequence_id: int,
     db: AsyncSession = Depends(get_db_session),
 ) -> EventRead:
-    """
-    Fetch one specific event by its sequence_id.
+    
 
-    sequence_id is the global ordering integer assigned by the PostgreSQL
-    BIGSERIAL — not the UUID primary key. Use this endpoint to retrieve a
-    specific event when you know its position in the log, e.g. after
-    observing a latest_sequence_id in a poll response and wanting to
-    inspect that exact event in detail.
-
-    Returns 404 if no event with that sequence_id exists.
-    """
     store = EventLogStore(db)
     event = await store.get_event_by_sequence(sequence_id)
 

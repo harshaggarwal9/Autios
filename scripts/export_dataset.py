@@ -1,36 +1,3 @@
-"""
-scripts/export_dataset.py
-──────────────────────────
-CLI script to export the accumulated DatasetRecord rows to JSONL or CSV,
-without needing a running FastAPI server.
-
-Paper connection (§IV — Dataset Creation):
-  Produces the training dataset 𝒟 in JSONL format (one prompt/completion
-  pair per line) ready for direct use with:
-    - HuggingFace Trainer:  datasets.load_dataset("json", data_files="...")
-    - OpenAI fine-tuning:   minor key renaming (prompt→messages, etc.)
-    - Vertex AI:            compatible with supervised tuning input format
-
-Usage:
-    python scripts/export_dataset.py [OPTIONS]
-
-Options (all optional):
-    --format        jsonl|csv       Export format (default: jsonl)
-    --output        PATH            Output file path (default: stdout)
-    --scenario-tag  STR             Filter to a specific scenario_tag
-    --sop-only                      Export SOP tasks only
-    --unexpected-only               Export unexpected tasks only
-    --limit         INT             Max records to export
-    --stats                         Print dataset statistics and exit
-
-Examples:
-    python scripts/export_dataset.py --stats
-    python scripts/export_dataset.py --output dataset.jsonl
-    python scripts/export_dataset.py --format csv --output dataset.csv
-    python scripts/export_dataset.py --scenario-tag inspection_station --sop-only
-    python scripts/export_dataset.py --limit 100 --output sample.jsonl
-"""
-
 import argparse
 import asyncio
 import json
@@ -140,13 +107,13 @@ async def main() -> None:
 
     async with get_session_factory()() as db:
 
-        # ── Stats mode ─────────────────────────────────────────────────────────
+
         if args.stats:
             stats = await exporter.export_stats(db)
             print_stats(stats)
             return
 
-        # ── Export mode ────────────────────────────────────────────────────────
+
         logger.info(
             "Exporting dataset (format=%s, scenario=%s, sop_only=%s, limit=%s)...",
             args.format, args.scenario_tag, sop_only, args.limit,
@@ -167,7 +134,7 @@ async def main() -> None:
                 sop_only=sop_only,
                 limit=args.limit,
             )
-            # Subtract 1 for header row
+
             record_count = max(0, len(content.splitlines()) - 1)
 
     if args.output:

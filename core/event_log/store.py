@@ -1,32 +1,3 @@
-"""
-core/event_log/store.py
-────────────────────────
-EventLogStore — the single write and read interface for the event_log table.
-
-Paper connection (§III.B — Event Log Memory ℰ):
-  "The event log ℰ is a persistent, ordered record of all events in the system.
-  Agents append to it and read from it using a cursor (last processed
-  sequence_id)."
-
-  This class is the only component that writes to or reads from event_log.
-  Every other component (DataObserver, OperatorAgent, ManagerAgent,
-  SubscriptionEngine) goes through this store — never through raw SQLAlchemy
-  queries on the EventLog model.
-
-Design decisions:
-  1. append() / append_many() return the persisted EventRead schema so callers
-     can immediately access the server-assigned sequence_id without a
-     second query.
-  2. get_events_since() is the SubscriptionEngine's read path — it takes a
-     cursor (after_sequence_id) and an optional list of scope filters.
-  3. All methods accept an AsyncSession injected by the caller — the store
-     does NOT manage its own session lifecycle (that is the caller's
-     responsibility, keeping the store stateless and testable).
-
-Dependencies:
-  db.models.event_log.EventLog, schemas.event.EventCreate/EventRead,
-  sqlalchemy async
-"""
 
 import logging
 from dataclasses import dataclass
@@ -41,30 +12,13 @@ logger = logging.getLogger(__name__)
 
 
 class EventLogStore:
-    """
-    Stateless read/write interface for the event_log table.
-
-    One instance is created per request (or per agent loop iteration)
-    from an injected AsyncSession. The instance holds no state beyond
-    the session reference — it is safe to create and discard freely.
-    """
+    
 
     def __init__(self, db: AsyncSession) -> None:
         self._db = db
 
-    # ── Write ─────────────────────────────────────────────────────────────────
-
     async def append(self, event: EventCreate) -> EventRead:
-        """
-        Append a single event to the log.
-
-        Returns the persisted EventRead (including the server-assigned
-        sequence_id and created_at) without requiring a separate query.
-
-        The caller is responsible for calling db.commit() after this method
-        returns — the store deliberately does not commit so that callers
-        can batch multiple appends in a single transaction.
-        """
+        
         row = EventLog(
             scope=event.scope,
             source=event.source,
@@ -72,7 +26,7 @@ class EventLogStore:
             event_metadata=event.metadata,
         )
         self._db.add(row)
-        await self._db.flush()  # populates sequence_id and id from the DB
+        await self._db.flush()
 
         logger.debug(
             "EventLogStore.append: seq=%d scope=%r source=%r text=%r",
@@ -82,14 +36,7 @@ class EventLogStore:
         return EventRead.model_validate(row, from_attributes=True)
 
     async def append_many(self, events: list[EventCreate]) -> list[EventRead]:
-        """
-        Append multiple events in a single flush.
 
-        More efficient than calling append() in a loop because the DB round-trip
-        (flush) is performed once for all rows.
-
-        Returns EventRead objects in the same order as the input list.
-        """
         if not events:
             return []
 
@@ -121,7 +68,7 @@ class EventLogStore:
 
         return results
 
-    # ── Read ──────────────────────────────────────────────────────────────────
+
 
     async def get_events_since(
         self,
@@ -129,27 +76,9 @@ class EventLogStore:
         limit: int = 50,
         scopes: list[str] | None = None,
     ) -> EventBatch:
-        """
-        Return events with sequence_id > after_sequence_id.
+        
 
-        This is the SubscriptionEngine's primary read path — it calls this
-        method on every agent poll cycle with the agent's current cursor.
 
-        Args:
-            after_sequence_id: The agent's current cursor. Returns events
-                               strictly AFTER this sequence_id.
-            limit:             Max events to return per call (default 50).
-                               The SubscriptionEngine uses this to bound
-                               memory usage on the agent's event window.
-            scopes:            Optional list of scope strings to filter by.
-                               If None (or empty), returns events from all scopes.
-                               Used by the SubscriptionEngine to implement
-                               per-agent scope filtering.
-
-        Returns:
-            EventBatch containing the matching events (oldest first) and the
-            highest sequence_id in the batch (for cursor advancement).
-        """
         query = (
             select(EventLog)
             .where(EventLog.sequence_id > after_sequence_id)
@@ -177,20 +106,9 @@ class EventLogStore:
         limit: int = 100,
         scopes: list[str] | None = None,
     ) -> EventBatch:
-        """
-        Return the most recent N events, newest first.
+        
 
-        Used by the SummarizationAgent and the GET /events API endpoint.
-        Unlike get_events_since(), this does not take a cursor — it always
-        returns the tail of the log.
 
-        Args:
-            limit:  Max number of events to return.
-            scopes: Optional scope filter (same semantics as get_events_since).
-
-        Returns:
-            EventBatch with events in descending sequence_id order (newest first).
-        """
         query = (
             select(EventLog)
             .order_by(EventLog.sequence_id.desc())
@@ -213,7 +131,7 @@ class EventLogStore:
         )
 
     async def get_event_by_sequence(self, sequence_id: int) -> EventRead | None:
-        """Return one event by exact sequence_id, or None if not found."""
+        
         result = await self._db.execute(
             select(EventLog).where(EventLog.sequence_id == sequence_id)
         )
@@ -223,12 +141,9 @@ class EventLogStore:
         return EventRead.model_validate(row, from_attributes=True)
 
     async def get_latest_sequence_id(self) -> int:
-        """
-        Return the current maximum sequence_id in the log.
+        
 
-        Returns 0 if the log is empty (so agents starting fresh begin
-        their cursor at 0, which get_events_since treats as "from the beginning").
-        """
+
         result = await self._db.execute(
             select(func.max(EventLog.sequence_id))
         )
@@ -236,7 +151,7 @@ class EventLogStore:
         return value if value is not None else 0
 
     async def count_events(self, scopes: list[str] | None = None) -> int:
-        """Return the total number of events, optionally filtered by scope."""
+        
         query = select(func.count(EventLog.id))
         if scopes:
             query = query.where(EventLog.scope.in_(scopes))

@@ -1,18 +1,3 @@
-"""
-api/routes/tasks.py
-─────────────────────
-REST endpoints for task submission and status inspection.
-
-Endpoints:
-  POST /tasks                          — submit a new task to ManagerAgent
-  GET  /tasks                          — list all tasks
-  GET  /tasks/{task_id}                — task detail with assignments and plan
-  GET  /tasks/{task_id}/assignments    — subtask assignments for one task
-
-Paper connection (§III.A — Manager Agent):
-  POST /tasks is the user-facing entry point. The ManagerAgent polls for
-  PENDING rows, decomposes them, and publishes [MES][Manager] events.
-"""
 
 import logging
 import uuid
@@ -34,13 +19,7 @@ async def submit_task(
     payload: TaskCreate,
     db: AsyncSession = Depends(get_db_session),
 ) -> dict:
-    """
-    Submit a new task for the ManagerAgent to decompose.
 
-    Inserts a Task row with status=PENDING. The ManagerAgent picks it up
-    on its next poll cycle, builds a production plan, creates TaskAssignment
-    rows, and publishes [MES][Manager] events for each operator agent.
-    """
     task = Task(
         title=payload.title,
         description=payload.description,
@@ -66,7 +45,7 @@ async def submit_task(
 async def list_tasks(
     db: AsyncSession = Depends(get_db_session),
 ) -> dict:
-    """List all tasks, newest first."""
+    
     result = await db.execute(
         select(Task).order_by(Task.created_at.desc())
     )
@@ -90,7 +69,7 @@ async def get_task(
     task_id: str,
     db: AsyncSession = Depends(get_db_session),
 ) -> dict:
-    """Get task detail including subtask assignments and the production plan."""
+    
     try:
         uid = uuid.UUID(task_id)
     except ValueError:
@@ -136,12 +115,8 @@ async def get_task_assignments(
     task_id: str,
     db: AsyncSession = Depends(get_db_session),
 ) -> dict:
-    """
-    Return only the subtask assignments for one task, ordered by sequence.
+    
 
-    Useful when the caller needs assignment status without the full task
-    plan JSON — e.g. a monitoring dashboard polling assignment progress.
-    """
     try:
         uid = uuid.UUID(task_id)
     except ValueError:

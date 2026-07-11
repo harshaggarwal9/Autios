@@ -1,31 +1,31 @@
-# ──────────────────────────────────────────────────────────────────────────────
-# Inspection Station — Module Configuration
-#
-# This file is the authoritative source for everything the PromptConstructionEngine
-# (Phase 4) needs to build the five-section prompt described in Table I of the paper:
-#
-#   Section 1 — Role Definition          (role_definition)
-#   Section 2 — Component Description    (component_description)
-#   Section 3 — Callable Functions       (callable_functions)
-#   Section 4 — Standard Operation Proc. (standard_operation_procedure)
-#   Section 5 — Auxiliary Instruction    (auxiliary_instruction)
-#
-# Content is transcribed from prompt_example.txt and the paper §III.C.
-# ──────────────────────────────────────────────────────────────────────────────
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 module_id: inspection_station
 display_name: "Inspection Station"
 
-# ── Section 1: Role Definition (ℛ_AMi in paper notation) ─────────────────────
+
 role_definition: >
   You are an operator of an automation module called "Inspection Station"
   responsible for the quality inspection of workpieces coming from a Storage
   Station and managing material transport on conveyors within the Inspection
   Station.
 
-# ── Section 2: Component Description (𝒞_Mi) ──────────────────────────────────
-# Maps directly to the sensors and actuators the DataObserver (Phase 3) monitors.
-# node_id fields are the keys used in the InformationModel state dict.
+
+
+
 component_description:
   conveyors:
     - id: C1
@@ -123,9 +123,9 @@ component_description:
         H1; Switch S1 can divert the workpiece path from Conveyor C2 to Conveyor
         C4 if actuated.
 
-# ── Section 3: Callable Functions (ℱ_Mi) ─────────────────────────────────────
-# Each entry becomes a function signature block in the prompt.
-# The FunctionRegistry (Phase 5) uses the same function_name values as dispatch keys.
+
+
+
 callable_functions:
   - function_name: conveyor_1_run
     signature: "conveyor_1_run(direction, time)"
@@ -265,9 +265,9 @@ callable_functions:
         type: string
         description: Provides detailed information about specific issues.
 
-# ── Section 4: Standard Operation Procedure (SOP_AMi) ────────────────────────
-# These are the paper's exact SOP steps from prompt_example.txt.
-# The PromptConstructionEngine formats this as a bulleted list in the prompt.
+
+
+
 standard_operation_procedure:
   - "When the sensor BG56 detects the workpiece at the end of conveyor C1, transport the workpiece on conveyor C1 for 13 seconds to the inspection point."
   - "When the sensor BG51 detects the workpiece, read the workpiece information."
@@ -282,9 +282,9 @@ standard_operation_procedure:
   - "When conveyor C2 starts running, release the holder H1."
   - "When the sensor BG21 no longer detects the workpiece, start conveyor C4 for 8 seconds."
 
-# ── Section 5: Auxiliary Instruction ─────────────────────────────────────────
-# Formatting instructions appended after the SOP, before the event log input.
-# The exact wording from prompt_example.txt.
+
+
+
 auxiliary_instruction: >
   An event log will provide you the information about the current state of the
   system. You will observe an event log in the input section and you shall
@@ -299,10 +299,10 @@ auxiliary_instruction: >
   Output:
   {"reason":"reason_for_action", "command":"a_function()"}
 
-# ── Subscription scopes ───────────────────────────────────────────────────────
-# Which event scopes the Inspection Station's operator agent subscribes to.
-# Used by the SubscriptionEngine (Phase 2) to filter the global event log.
-# Paper formalism: ℰ_AMi = 𝒮(AMi) ⊆ ℰ
+
+
+
+
 subscriptions:
-  - scope: "Inspection Station"   # events from this module's own sensors/actuators
-  - scope: "MES"                  # task assignments from the Manager/MES layer
+  - scope: "Inspection Station"
+  - scope: "MES"

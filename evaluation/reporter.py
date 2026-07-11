@@ -1,18 +1,3 @@
-"""
-evaluation/reporter.py
-───────────────────────
-EvaluationReporter — serialises EvaluationRun results to JSON and CSV.
-
-Paper connection (§V — Experiments, Table II):
-  The paper presents results in a table comparing models across SOP and
-  unexpected task correctness rates and reason plausibility scores. This
-  reporter produces exactly that table as JSON and CSV.
-
-Dependencies:
-  db.models.dataset.EvaluationRun, EvaluationResult
-  sqlalchemy async, csv/json (stdlib)
-"""
-
 import csv
 import io
 import uuid as _uuid
@@ -24,29 +9,14 @@ from db.models.dataset import EvaluationResult, EvaluationRun
 
 
 class EvaluationReporter:
-    """
-    Reads EvaluationRun rows from DB and serialises them to JSON/CSV.
-    """
-
+  
     async def export_run_json(
         self,
         db: AsyncSession,
         run_id: str,
         include_cases: bool = True,
     ) -> dict:
-        """
-        Export one EvaluationRun as a structured JSON dict.
 
-        Args:
-            run_id:        UUID string of the EvaluationRun to export.
-            include_cases: Whether to include per-case results.
-
-        Returns:
-            Dict matching the paper's Table II structure plus metadata.
-
-        Raises:
-            ValueError: if run_id does not match any EvaluationRun.
-        """
         run_result = await db.execute(
             select(EvaluationRun).where(EvaluationRun.id == _uuid.UUID(run_id))
         )
@@ -98,11 +68,7 @@ class EvaluationReporter:
         return output
 
     async def export_all_runs_csv(self, db: AsyncSession) -> str:
-        """
-        Export all EvaluationRun rows as CSV — one row per run, matching
-        Table II of the paper for direct copy-paste into a spreadsheet or
-        LaTeX table.
-        """
+ 
         runs_result = await db.execute(
             select(EvaluationRun).order_by(EvaluationRun.created_at.asc())
         )
@@ -140,7 +106,7 @@ class EvaluationReporter:
         return output.getvalue()
 
     async def list_runs(self, db: AsyncSession) -> list[dict]:
-        """Return a lightweight list of all EvaluationRun summaries."""
+        
         runs_result = await db.execute(
             select(EvaluationRun).order_by(EvaluationRun.created_at.desc())
         )
@@ -160,7 +126,7 @@ class EvaluationReporter:
 
 
 def _pct(value: float | None) -> float | None:
-    """Convert a 0-1 rate to a rounded percentage, or return None."""
+    
     if value is None:
         return None
     return round(value * 100, 1)

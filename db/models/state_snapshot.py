@@ -1,17 +1,17 @@
-"""
-db/models/state_snapshot.py
-────────────────────────────
-ORM model for module_state_snapshots.
 
-Paper connection (§II.B — Digital Twins):
-  The paper's InformationModels maintain a "synchronized digital representation"
-  of physical assets. This table persists periodic snapshots of each module's
-  state dict so the system can recover to a known state after a restart.
 
-  The DataObserver reads the most recent snapshot on startup to initialize its
-  "previous state" tracking — needed to detect state transitions without missing
-  events (e.g. BG51 going from False → True).
-"""
+
+
+
+
+
+
+
+
+
+
+
+
 
 import uuid
 from datetime import datetime
@@ -32,8 +32,8 @@ class ModuleStateSnapshot(UUIDPrimaryKeyMixin, Base):
         nullable=False,
     )
 
-    # Complete state dict for the module at the time of snapshot.
-    # Keys are node_ids (BG51, H2, C1_running, etc.), values are their states.
+
+
     state: Mapped[dict] = mapped_column(JSONB, nullable=False)
 
     recorded_at: Mapped[datetime] = mapped_column(

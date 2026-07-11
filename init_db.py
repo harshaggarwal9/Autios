@@ -4,7 +4,7 @@ from config.settings import get_settings
 from db.base import Base
 from db.session import init_db, get_engine
 
-# Import all models so SQLAlchemy registers them
+
 import db.models.agent
 import db.models.automation_module
 import db.models.dataset
@@ -17,7 +17,7 @@ import db.models.task
 async def main():
     settings = get_settings()
 
-    # Initialize database engine
+
     init_db(
         database_url=settings.database_url,
         echo=True,

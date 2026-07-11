@@ -1,33 +1,3 @@
-"""
-scripts/run_evaluation.py
-──────────────────────────
-CLI script to run an evaluation pass directly from the command line,
-without needing a running FastAPI server.
-
-Reproduces the paper's §V evaluation methodology:
-  1. Loads DatasetRecord rows from the database.
-  2. Calls Gemini once per test case using the stored prompt.
-  3. Compares the generated command against the reference output.
-  4. Scores reason plausibility using Gemini-as-judge.
-  5. Persists results and prints a Table II-formatted summary.
-
-Usage:
-    python scripts/run_evaluation.py [OPTIONS]
-
-Options (all optional):
-    --run-name      STR    Label for this run (default: "cli_run")
-    --scenario-tag  STR    Filter test cases to this scenario_tag
-    --max-cases     INT    Max number of test cases to evaluate
-    --sop-only             Only evaluate SOP tasks
-    --unexpected-only      Only evaluate unexpected tasks
-    --no-reasons           Skip Gemini-as-judge plausibility scoring (faster)
-
-Examples:
-    python scripts/run_evaluation.py
-    python scripts/run_evaluation.py --run-name gemini-flash-v2 --max-cases 40
-    python scripts/run_evaluation.py --scenario-tag inspection_station --no-reasons
-"""
-
 import argparse
 import asyncio
 import logging
@@ -90,7 +60,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def print_summary(summary: EvaluationSummary) -> None:
-    """Print a Table II-formatted summary to stdout."""
+    
 
     def fmt_pct(v: float | None) -> str:
         return f"{v * 100:.1f}%" if v is not None else "N/A"
@@ -133,7 +103,7 @@ async def main() -> None:
         )
         sys.exit(1)
 
-    # Resolve sop_only parameter
+
     sop_only: bool | None = None
     if args.sop_only and args.unexpected_only:
         logger.error("--sop-only and --unexpected-only are mutually exclusive.")

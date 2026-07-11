@@ -1,12 +1,4 @@
-"""
-api/dependencies.py
-────────────────────
-Shared FastAPI dependencies injected across all route modules.
 
-Using Request.app.state instead of module-level globals makes dependencies
-test-safe: each test can create a fresh app with its own state rather than
-inheriting shared mutable module globals.
-"""
 
 from fastapi import Request
 

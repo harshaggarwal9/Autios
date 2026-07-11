@@ -1,29 +1,4 @@
-"""
-agents/agent_runner.py
-───────────────────────
-AgentRunner — creates, starts, and shuts down all agent instances.
 
-Paper connection (§III.B — Agent System 𝒜𝒮):
-  Manages the lifecycle of all three agent types:
-    - OPERATOR: one per automation module
-    - MANAGER:  exactly one (agent_id="manager")
-    - SUMMARIZATION: one optional background summarizer (Phase 6)
-
-  Adding a new module only requires a new YAML + seeded DB row.
-
-Phase 6 additions:
-  - dataset_recorder: optional DatasetRecorder injected into all agents
-  - enable_summarization: start a SummarizationAgent background task
-  - summary_types / summary_interval_seconds: summarization config
-
-Dependencies:
-  agents.operator_agent.OperatorAgent
-  agents.manager_agent.ManagerAgent
-  agents.summarization_agent.SummarizationAgent, SummaryType
-  command.interface_manager.CommandInterfaceManager
-  dataset.recorder.DatasetRecorder
-  llm.client.GeminiClient
-"""
 
 import logging
 import uuid
@@ -48,10 +23,7 @@ MANAGER_AGENT_ID = "manager"
 
 
 class AgentRunner:
-    """
-    Manages the lifecycle of all agent instances.
-    Held on app.state.agent_runner.
-    """
+    
 
     def __init__(self) -> None:
         self._agents: dict[str, BaseAgent] = {}
@@ -68,15 +40,8 @@ class AgentRunner:
         summary_types: list[SummaryType] | None = None,
         summary_interval_seconds: float = 60.0,
     ) -> None:
-        """
-        Load all agents from DB and start their run_loop tasks.
+        
 
-        Phase 6 additions:
-            dataset_recorder:         optional DatasetRecorder for auto dataset creation.
-            enable_summarization:     start a SummarizationAgent background task.
-            summary_types:            which summary types to generate.
-            summary_interval_seconds: how often to generate summaries.
-        """
         self._llm_client = GeminiClient()
 
         await self._start_operator_agents(
@@ -105,7 +70,7 @@ class AgentRunner:
         command_interface_manager: CommandInterfaceManager,
         dataset_recorder: DatasetRecorder | None = None,
     ) -> None:
-        """Query DB for OPERATOR agents and start one OperatorAgent per row."""
+        
         async with session_factory() as db:
             result = await db.execute(
                 select(Agent).where(Agent.agent_type == AgentType.OPERATOR)
@@ -171,7 +136,7 @@ class AgentRunner:
         module_configs: dict[str, ModuleConfig],
         dataset_recorder: DatasetRecorder | None = None,
     ) -> None:
-        """Query DB for the 'manager' agent row and start ManagerAgent."""
+        
         async with session_factory() as db:
             result = await db.execute(
                 select(Agent).where(
@@ -206,7 +171,7 @@ class AgentRunner:
         summary_types: list[SummaryType] | None,
         summary_interval_seconds: float,
     ) -> None:
-        """Create and start the SummarizationAgent background task."""
+        
         import asyncio as _asyncio
         summ_db_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
 
@@ -219,8 +184,8 @@ class AgentRunner:
             summary_interval_seconds=summary_interval_seconds,
         )
 
-        # Launch run_loop directly — no start() call since there is no
-        # real Agent DB row to write status to
+
+
         task = _asyncio.create_task(
             agent.run_loop(),
             name="summarization_agent",
@@ -236,7 +201,7 @@ class AgentRunner:
         )
 
     async def stop(self) -> None:
-        """Stop all running agents gracefully."""
+        
         for agent_id, agent in self._agents.items():
             await agent.stop()
             logger.info("Agent '%s' stopped.", agent_id)

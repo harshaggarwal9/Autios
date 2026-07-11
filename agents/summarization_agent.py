@@ -1,37 +1,3 @@
-"""
-agents/summarization_agent.py
-──────────────────────────────
-SummarizationAgent — periodically generates operational summaries of the
-system's event log using the Gemini API.
-
-Paper connection (§III.A — Summarization Agent):
-  "The summarization agent periodically generates summaries of the overall
-  production process for human operators."
-
-  Behaviour:
-    1. Sleeps for `summary_interval_seconds`.
-    2. Reads all events since last cursor position.
-    3. If events exist, calls Gemini once per registered summary type.
-    4. Persists each summary as a scope="Summaries" event in the EventLog.
-    5. Advances the cursor.
-
-  Summary types: TASK, PRODUCTION, ERROR, DAILY
-
-Architecture note:
-  SummarizationAgent uses a synthetic agent_db_id that has no
-  corresponding row in the agents table. Therefore it overrides both
-  stop() and _advance_cursor() to avoid inherited database updates from
-  BaseAgent. Its cursor is intentionally in-memory only; summaries are
-  considered idempotent and do not require durable cursor persistence.
-
-Dependencies:
-  agents.base_agent.BaseAgent
-  llm.client.GeminiClient
-  llm.rate_limiter.RateLimiter
-  core.event_log.store.EventLogStore
-  schemas.event.EventCreate, EventRead
-"""
-
 import asyncio
 import logging
 import uuid
@@ -100,13 +66,6 @@ MAX_EVENTS_PER_SUMMARY = 100
 
 
 class SummarizationAgent(BaseAgent):
-    """
-    Monitors the EventLogStore and generates periodic operational summaries.
-
-    Unlike operational agents, SummarizationAgent does not persist its
-    cursor position to the agents table. It uses a synthetic agent_db_id
-    and maintains its cursor entirely in memory.
-    """
 
     def __init__(
         self,
@@ -123,20 +82,14 @@ class SummarizationAgent(BaseAgent):
         self._summary_types = summary_types or [SummaryType.PRODUCTION]
         self._interval = summary_interval_seconds
 
-        # Low rate limit — summaries are infrequent by design
+
         self._rate_limiter = RateLimiter(
             requests_per_minute=5,
             burst=1,
         )
 
     async def stop(self) -> None:
-        """
-        Override BaseAgent.stop() to skip the DB _set_status() call.
-
-        SummarizationAgent uses a synthetic agent_db_id with no real row
-        in the agents table, so UPDATE agents WHERE id=... would be a no-op
-        at best and raise an integrity error at worst.
-        """
+  
         self._running = False
 
         if self._task and not self._task.done():
@@ -153,19 +106,7 @@ class SummarizationAgent(BaseAgent):
         )
 
     async def _advance_cursor(self, new_sequence_id: int) -> None:
-        """
-        Override BaseAgent._advance_cursor().
 
-        SummarizationAgent uses a synthetic agent_db_id with no
-        corresponding row in the agents table, so the inherited
-        implementation's UPDATE statement would silently affect
-        zero rows every cycle.
-
-        The cursor is intentionally maintained only in memory.
-        On restart, the summarizer may regenerate summaries for
-        previously processed events, which is acceptable because
-        summaries are informational and idempotent.
-        """
         self._cursor = new_sequence_id
 
         logger.debug(
@@ -175,15 +116,10 @@ class SummarizationAgent(BaseAgent):
             self._cursor,
         )
 
-    # ── Main loop ──────────────────────────────────────────────────────────
+
 
     async def run_loop(self) -> None:
-        """
-        Periodic summary generation loop.
 
-        Every `_interval` seconds: read new events, generate summaries,
-        persist them as scope="Summaries" events, advance cursor.
-        """
         logger.info(
             "SummarizationAgent '%s' started "
             "(interval=%.0fs, types=%s).",
@@ -246,14 +182,14 @@ class SummarizationAgent(BaseAgent):
                 )
                 await asyncio.sleep(10.0)
 
-    # ── Private helpers ────────────────────────────────────────────────────
+
 
     async def _generate_and_persist_summary(
         self,
         events: list[EventRead],
         summary_type: SummaryType,
     ) -> None:
-        """Call Gemini and save the summary as a scope='Summaries' event."""
+        
         prompt = self._build_summary_prompt(
             events,
             summary_type,
@@ -309,7 +245,7 @@ class SummarizationAgent(BaseAgent):
         events: list[EventRead],
         summary_type: SummaryType,
     ) -> str:
-        """Build the summary prompt from system instructions + event log."""
+        
         system_prompt = _SUMMARY_PROMPTS[summary_type]
 
         event_lines = "\n".join(

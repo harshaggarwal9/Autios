@@ -1,14 +1,14 @@
-"""
-db/models/automation_module.py
-──────────────────────────────
-ORM model for the automation_modules table.
 
-Paper connection (§III.B — Automation Module ℳi):
-  Represents a physical automation module such as the Inspection Station.
-  Each module has a set of components (sensors/actuators), callable functions,
-  and emits events. The config_snapshot stores a JSON copy of the module's
-  YAML config at the time it was registered.
-"""
+
+
+
+
+
+
+
+
+
+
 
 import uuid
 from datetime import datetime
@@ -27,16 +27,16 @@ from db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 class AutomationModule(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "automation_modules"
 
-    # Human-readable unique identifier matching the YAML module_id.
+
     module_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
 
     display_name: Mapped[str] = mapped_column(String(128), nullable=False)
 
-    # Snapshot of the YAML config at registration time for audit trail.
+
     config_snapshot: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
-    # ── Relationships ─────────────────────────────────────────────────────────
-    agents: Mapped[list["Agent"]] = relationship(  # noqa: F821
+
+    agents: Mapped[list["Agent"]] = relationship(
         "Agent",
         back_populates="module",
         lazy="raise",
