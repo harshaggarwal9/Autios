@@ -284,14 +284,9 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(
-        title="LLM4IAS — LLM-Controlled Industrial Automation System",
+        title="AUTIOUS — Industrial Automation System",
         description=(
-            "Backend implementation of:\n\n"
-            "**Xia et al. (IEEE ETFA 2025)**\n"
-            "*Control Industrial Automation System with Large Language Models*\n\n"
-            "Phases implemented: 1 (Foundation) · 2 (Event Bus) · "
-            "3 (Digital Twin) · 4 (LLM + PromptEngine) · "
-            "5 (Command Interface) · 6 (Dataset + Evaluation + Summarization)"
+ 
         ),
         version="0.1.0",
         lifespan=lifespan,
